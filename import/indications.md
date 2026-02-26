@@ -1,0 +1,1 @@
+Aqui van los archivos .png y .xlsx con el nombre predeterminado de plantilla.xlsx y plantilla.png respectivamente

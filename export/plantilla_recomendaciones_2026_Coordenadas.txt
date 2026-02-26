@@ -1,0 +1,17 @@
+# --- CODIGO GENERADO: plantilla_recomendaciones_2026_Coordenadas ---
+
+# LABELS
+
+# BOXES
+# --- Box1 ---
+draw.rectangle([(488, 312), (1047, 623)], fill=None, outline=None)
+text_box = (488, 312, 1047, 623)
+#Box1 = Box1.replace("Por el", "Por el\n")
+draw_wrapped_text_justified(draw, Box1, semi_bold_font, text_box, 17, (0, 0, 0))
+
+# --- tipo_asesor_p_pymes_c_consumo ---
+draw.rectangle([(240, 467), (437, 616)], fill=None, outline=None)
+text_box = (240, 467, 437, 616)
+#tipo_asesor_p_pymes_c_consumo = tipo_asesor_p_pymes_c_consumo.replace("Por el", "Por el\n")
+draw_wrapped_text_justified(draw, tipo_asesor_p_pymes_c_consumo, semi_bold_font, text_box, 17, (0, 0, 0))
+
