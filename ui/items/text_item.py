@@ -94,21 +94,35 @@ class TextItem(QGraphicsTextItem):
         self.setFont(font)
         return False
 
+    def boundingRect(self):
+        """Limita el bounding rect al alto máximo (_max_height = alto del box padre).
+        
+        Sin esto, el TextItem se extiende visualmente fuera del box y roba
+        los eventos de hover en el borde inferior, impidiendo seleccionarlo.
+        """
+        br = super().boundingRect()
+        w = br.width() if br.width() > 0 else (self.textWidth() if self.textWidth() > 0 else 200)
+        constrained_h = min(br.height(), self._max_height)
+        return QRectF(br.x(), br.y(), w, constrained_h)
+
     def paint(self, painter, option, widget):
+        clip_w = self.textWidth() if self.textWidth() > 0 else 2000
+        clip_rect = QRectF(0, 0, clip_w, self._max_height)
+
         if self._show_border:
-            painter.setPen(QPen(QColor(154, 199, 200, 120), 1, Qt.PenStyle.DashLine))
-            painter.drawRect(self.boundingRect())
-        
+            painter.setPen(QPen(QColor(154, 199, 200, 60), 0.8, Qt.PenStyle.DashLine))
+            painter.drawRect(clip_rect)
+
         painter.save()
-        painter.setClipRect(QRectF(0, 0, self.textWidth() if self.textWidth() > 0 else 2000, self._max_height))
-        
+        painter.setClipRect(clip_rect)
+
         if self.document().size().height() > self._max_height:
             super().paint(painter, option, widget)
             painter.setPen(self.defaultTextColor())
-            painter.drawText(int(self.textWidth() - 12), int(self._max_height - 2), "...")
+            painter.drawText(int(clip_w - 16), int(self._max_height - 3), "...")
         else:
             super().paint(painter, option, widget)
-            
+
         painter.restore()
 
     def set_simple(self):

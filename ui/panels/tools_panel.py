@@ -163,12 +163,13 @@ class ToolsPanel(QFrame):
             layout.addWidget(btn)
 
         # Nota de atajos de teclado
-        lbl_hint = QLabel("  Usa 1 · 2 · 3 como atajos")
+        lbl_hint = QLabel("  Atajos:  1 · 2 · 3")
         lbl_hint.setStyleSheet("""
-            font-size: 9px;
-            color: #3a5570;
-            padding: 2px 10px 4px 10px;
+            font-size: 11px;
+            color: #7ab8c8;
+            padding: 3px 10px 5px 10px;
             font-style: italic;
+            letter-spacing: 1px;
         """)
         layout.addWidget(lbl_hint)
 

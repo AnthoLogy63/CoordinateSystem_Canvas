@@ -22,23 +22,19 @@ class AlignmentManager:
         self._last_snapped_y = None
 
     def get_alignment_points(self, items, active_item=None, target_type=None):
-        """Collects alignment points based on the target type."""
+        """Collects alignment points from ALL items (boxes and labels combined)."""
         x_points = set()
         y_points = set()
-
-        # If target_type is not provided, try to infer it from active_item
-        if target_type is None and active_item is not None:
-            target_type = type(active_item)
 
         for item in items:
             if item == active_item or not item.isVisible():
                 continue
 
-            if target_type == LabelItem and isinstance(item, LabelItem):
+            if isinstance(item, LabelItem):
                 x, y = item.get_center()
                 x_points.add(x)
                 y_points.add(y)
-            elif target_type == BoxItem and isinstance(item, BoxItem):
+            elif isinstance(item, BoxItem):
                 rect = item.mapToScene(item.rect()).boundingRect()
                 x_points.add(rect.left())
                 x_points.add(rect.right())
