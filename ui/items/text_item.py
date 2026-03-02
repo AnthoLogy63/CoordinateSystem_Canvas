@@ -11,9 +11,9 @@ class TextItem(QGraphicsTextItem):
         super().__init__(content, parent)
         
         self.setDefaultTextColor(QColor("#3e87ab"))
-        # Habilitar edición de texto
-        self.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
-        self.setAcceptedMouseButtons(Qt.MouseButton.LeftButton)
+        # Edición desactivada por defecto — se activa solo con doble clic
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
         self.document().setDocumentMargin(0)
         
         # Conectar cambio de texto para notificar al padre si es necesario
@@ -25,6 +25,32 @@ class TextItem(QGraphicsTextItem):
         
         self._show_border = True
         self._max_height = 1000
+        self._editing = False
+
+    def start_editing(self):
+        """Activa la edición de texto (llamado desde double-click del padre)."""
+        if self._editing:
+            return
+        self._editing = True
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.TextEditorInteraction)
+        self.setAcceptedMouseButtons(Qt.MouseButton.AllButtons)
+        self.setFocus(Qt.FocusReason.MouseFocusReason)
+
+    def stop_editing(self):
+        """Desactiva la edición y vuelve al modo de solo lectura."""
+        if not self._editing:
+            return
+        self._editing = False
+        self.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
+        self.setAcceptedMouseButtons(Qt.MouseButton.NoButton)
+        cursor = self.textCursor()
+        cursor.clearSelection()
+        self.setTextCursor(cursor)
+        self.clearFocus()
+        # Notificar al padre (BoxItem) para que restaure su color
+        parent = self.parentItem()
+        if parent and hasattr(parent, 'on_text_editing_stopped'):
+            parent.on_text_editing_stopped()
 
     def update_font_family(self, font_name):
         """Carga y aplica una fuente desde la carpeta fonts/"""
@@ -55,7 +81,6 @@ class TextItem(QGraphicsTextItem):
             font.setFamily(family)
             
             # Intentar detectar si es negrita por el nombre del archivo si la familia es la misma
-            # Esto ayuda cuando varias fuentes comparten la misma familia (Ej: Tw Cen MT)
             is_bold = "bold" in font_name.lower()
             font.setBold(is_bold)
             
@@ -110,10 +135,7 @@ class TextItem(QGraphicsTextItem):
     def focusOutEvent(self, event):
         """Sale del modo edición al perder el foco"""
         super().focusOutEvent(event)
-        # Opcional: mover el cursor al inicio
-        cursor = self.textCursor()
-        cursor.clearSelection()
-        self.setTextCursor(cursor)
+        self.stop_editing()
 
     def update_font_size(self, delta):
         self.prepareGeometryChange()

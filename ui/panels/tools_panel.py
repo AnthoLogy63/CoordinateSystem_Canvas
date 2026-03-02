@@ -60,6 +60,7 @@ ACTION_BTN_STYLE = """
     }
 """
 
+
 class ToolsPanel(QFrame):
     def __init__(self, main_window):
         super().__init__()
@@ -92,7 +93,7 @@ class ToolsPanel(QFrame):
 
         layout.addSpacing(6)
 
-        # --- Sección: Plantilla de Fondo ---
+        # --- Plantilla ---
         lbl_bg = QLabel("PLANTILLA")
         lbl_bg.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_bg.setStyleSheet("""
@@ -137,7 +138,7 @@ class ToolsPanel(QFrame):
 
         layout.addSpacing(4)
 
-        # --- Sección: Herramientas de modo ---
+        # --- Modo ---
         lbl_tools = QLabel("MODO")
         lbl_tools.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_tools.setStyleSheet("""
@@ -150,24 +151,26 @@ class ToolsPanel(QFrame):
 
         layout.addSpacing(4)
 
-        self.btn_moverse = QPushButton("🖱  Moverse en la Plantilla")
-        self.btn_crear_box = QPushButton("⬛   Crear Box")
-        self.btn_crear_label = QPushButton("⚪   Crear Label")
-        self.btn_transformar = QPushButton("📐   Transformar Objeto")
-        self.btn_exportar = QPushButton("📤   Exportar Coordenadas")
-        self.btn_importar = QPushButton("📥   Importar Coordenadas")
+        self.btn_moverse    = QPushButton("🖱  [1]  Moverse o Modificar")
+        self.btn_crear_box  = QPushButton("⬛  [2]  Crear Box")
+        self.btn_crear_label = QPushButton("⚪  [3]  Crear Label")
 
-        mode_buttons = [
-            self.btn_moverse, self.btn_crear_box, self.btn_crear_label,
-            self.btn_transformar,
-        ]
-        action_buttons = [self.btn_exportar, self.btn_importar]
-
+        mode_buttons = [self.btn_moverse, self.btn_crear_box, self.btn_crear_label]
         for btn in mode_buttons:
             btn.setMinimumHeight(40)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(NORMAL_BTN_STYLE)
             layout.addWidget(btn)
+
+        # Nota de atajos de teclado
+        lbl_hint = QLabel("  Usa 1 · 2 · 3 como atajos")
+        lbl_hint.setStyleSheet("""
+            font-size: 9px;
+            color: #3a5570;
+            padding: 2px 10px 4px 10px;
+            font-style: italic;
+        """)
+        layout.addWidget(lbl_hint)
 
         layout.addSpacing(10)
 
@@ -178,7 +181,10 @@ class ToolsPanel(QFrame):
 
         layout.addSpacing(4)
 
-        for btn in action_buttons:
+        self.btn_exportar = QPushButton("📤   Exportar Coordenadas")
+        self.btn_importar = QPushButton("📥   Importar Coordenadas")
+
+        for btn in [self.btn_exportar, self.btn_importar]:
             btn.setMinimumHeight(40)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(ACTION_BTN_STYLE)
@@ -191,7 +197,6 @@ class ToolsPanel(QFrame):
         self.btn_moverse.clicked.connect(lambda: self.change_mode(Mode.SELECT))
         self.btn_crear_box.clicked.connect(lambda: self.change_mode(Mode.CREATE))
         self.btn_crear_label.clicked.connect(lambda: self.change_mode(Mode.CREATE_LABEL))
-        self.btn_transformar.clicked.connect(lambda: self.change_mode(Mode.TRANSFORM))
         self.btn_exportar.clicked.connect(self.export_action)
         self.btn_importar.clicked.connect(self.import_action)
 
@@ -206,14 +211,17 @@ class ToolsPanel(QFrame):
             self.main_window.view.set_mode(mode)
 
         btn_map = {
-            Mode.SELECT: self.btn_moverse,
-            Mode.CREATE: self.btn_crear_box,
+            Mode.SELECT:       self.btn_moverse,
+            Mode.TRANSFORM:    self.btn_moverse,   # alias
+            Mode.CREATE:       self.btn_crear_box,
             Mode.CREATE_LABEL: self.btn_crear_label,
-            Mode.TRANSFORM: self.btn_transformar,
         }
 
         for m, btn in btn_map.items():
             btn.setStyleSheet(ACTIVE_BTN_STYLE if m == mode else NORMAL_BTN_STYLE)
+        # Aseguramos que btn_moverse quede activo tanto en SELECT como TRANSFORM
+        if mode in (Mode.SELECT, Mode.TRANSFORM):
+            self.btn_moverse.setStyleSheet(ACTIVE_BTN_STYLE)
 
     def import_background_action(self):
         file_path, _ = QFileDialog.getOpenFileName(
@@ -233,7 +241,7 @@ class ToolsPanel(QFrame):
             self, "Seleccionar carpeta para exportar", ""
         )
         if not export_dir:
-            return  # El usuario canceló
+            return
         py_path, txt_path = self.main_window.export_elements(export_dir)
         QMessageBox.information(
             self, "Exportar",
@@ -256,7 +264,7 @@ class ToolsPanel(QFrame):
 
             if not hasattr(module, "LAYOUT_CONFIG"):
                 raise Exception("El archivo no contiene LAYOUT_CONFIG")
-            
+
             config = module.LAYOUT_CONFIG
             boxes_data = config.get('boxes', {})
             labels_data = config.get('labels', {})

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QGraphicsPixmapItem, QLabel, QGraphicsTextItem, QMessageBox
 from PyQt6.QtGui import QPixmap, QFont, QColor, QPen, QBrush
-from PyQt6.QtCore import QRectF, QPointF
+from PyQt6.QtCore import QRectF, QPointF, Qt
 from ui.graphics_view import GraphicsView
 from core.box_manager import BoxManager
 from core.label_manager import LabelManager
@@ -159,6 +159,27 @@ class MainWindow(QMainWindow):
 
         rect = pixmap.rect()
         self.view.scene().setSceneRect(QRectF(rect))
+
+    def keyPressEvent(self, event):
+        """Atajos de teclado globales para cambiar de modo."""
+        # No capturar si hay un TextItem activo o cualquier widget con foco de texto
+        from PyQt6.QtWidgets import QApplication
+        focused = QApplication.focusWidget()
+        if focused and focused is not self and hasattr(focused, 'toPlainText'):
+            super().keyPressEvent(event)
+            return
+
+        key = event.key()
+        if key == Qt.Key.Key_1:
+            self.change_mode(Mode.SELECT)
+        elif key == Qt.Key.Key_2:
+            self.change_mode(Mode.CREATE)
+        elif key == Qt.Key.Key_3:
+            self.change_mode(Mode.CREATE_LABEL)
+        elif key == Qt.Key.Key_Escape:
+            self.change_mode(Mode.SELECT)
+        else:
+            super().keyPressEvent(event)
 
     def change_mode(self, mode):
         self.current_mode = mode

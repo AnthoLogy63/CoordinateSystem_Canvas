@@ -8,6 +8,20 @@ from ui.items.text_item import TextItem
 HANDLE_MARGIN = 5
 MIN_SIZE = 8
 
+# ── Colores de estado del BoxItem ──────────────────────────────────────────
+COLOR_DEFAULT  = QColor(33, 150, 243)       # azul  — sin tocar
+COLOR_SELECTED = QColor(253, 158, 46)       # naranja — seleccionado / moviendo
+COLOR_EDITING  = QColor(72, 199, 142)       # verde  — editando texto
+
+PEN_DEFAULT  = QPen(COLOR_DEFAULT,  1.0)
+PEN_SELECTED = QPen(COLOR_SELECTED, 1.8)
+PEN_EDITING  = QPen(COLOR_EDITING,  1.8)
+
+BRUSH_DEFAULT  = QColor(33,  150, 243, 40)
+BRUSH_SELECTED = QColor(253, 158,  46, 40)
+BRUSH_EDITING  = QColor(72,  199, 142, 40)
+
+
 def _get_handle(pos, rect, margin=HANDLE_MARGIN):
     x, y = pos.x(), pos.y()
     l, r = rect.left(), rect.right()
@@ -49,6 +63,7 @@ def _cursor_for_handle(handle):
     }
     return cursors.get(handle, Qt.CursorShape.ArrowCursor)
 
+
 class BoxItem(QGraphicsRectItem):
     def __init__(self, rect, name, font_name="Arial"):
         super().__init__(rect)
@@ -59,10 +74,8 @@ class BoxItem(QGraphicsRectItem):
             QGraphicsRectItem.GraphicsItemFlag.ItemIsSelectable |
             QGraphicsRectItem.GraphicsItemFlag.ItemSendsGeometryChanges
         )
-        self.setPen(QPen(QColor(33, 150, 243), 1))
-        self.setBrush(QColor(33, 150, 243, 50))
+        self._apply_state("default")
 
-        # Solo una inicialización con el modo correcto
         self.text_item = TextItem(text_mode="long", parent=self)
         self.text_item.update_font_family(self.font_name)
         self.update_text_layout()
@@ -73,35 +86,50 @@ class BoxItem(QGraphicsRectItem):
         self._pos_start = None
         self.setAcceptHoverEvents(True)
 
+    # ── Estado visual ──────────────────────────────────────────────────────
+    def _apply_state(self, state: str):
+        """Aplica el color de borde/fondo según el estado: 'default', 'selected', 'editing'."""
+        self._vis_state = state
+        if state == "selected":
+            self.setPen(PEN_SELECTED)
+            self.setBrush(BRUSH_SELECTED)
+        elif state == "editing":
+            self.setPen(PEN_EDITING)
+            self.setBrush(BRUSH_EDITING)
+        else:
+            self.setPen(PEN_DEFAULT)
+            self.setBrush(BRUSH_DEFAULT)
+
+    def set_state(self, state: str):
+        self._apply_state(state)
+
+    # ── Layout de texto ────────────────────────────────────────────────────
     def update_text_layout(self):
-        """Alias para mantener compatibilidad con la señal de TextItem"""
         self._sync_layout()
 
     def _sync_layout(self):
         r = self.rect()
         width = r.width()
         height = r.height()
-        
-        # Primero configuramos el ancho y la justificación
         self.text_item.set_justified(width, height)
-        
-        # Luego calculamos el alto real del documento para centrar verticalmente
         doc_height = self.text_item.document().size().height()
         y_offset = max(0, (height - doc_height) / 2)
-        
         self.text_item.setPos(r.left(), r.top() + y_offset)
 
+    # ── Helpers ───────────────────────────────────────────────────────────
     def _view(self):
         if self.scene() and self.scene().views():
             return self.scene().views()[0]
         return None
 
-    def _in_transform_mode(self):
+    def _in_interactive_mode(self):
         v = self._view()
-        return v and v.mode == Mode.TRANSFORM
+        return v and v.mode in (Mode.TRANSFORM, Mode.SELECT)
+
+    def _in_transform_mode(self):
+        return self._in_interactive_mode()
 
     def get_text(self):
-        """Devuelve el texto actual del item"""
         return self.text_item.toPlainText()
 
     def set_name(self, new_name):
@@ -110,8 +138,25 @@ class BoxItem(QGraphicsRectItem):
     def get_resize_corner(self, pos):
         return _get_handle(pos, self.rect())
 
+    # ── Eventos de ratón ──────────────────────────────────────────────────
+    def mouseDoubleClickEvent(self, event):
+        if self._in_interactive_mode():
+            self._apply_state("editing")
+            self.text_item.start_editing()
+            event.accept()
+        else:
+            super().mouseDoubleClickEvent(event)
+
+    def on_text_editing_stopped(self):
+        """Llamado por TextItem al salir de la edición."""
+        self._apply_state("default")
+
     def mousePressEvent(self, event):
-        if not self._in_transform_mode():
+        if not self._in_interactive_mode():
+            super().mousePressEvent(event)
+            return
+
+        if self.text_item._editing:
             super().mousePressEvent(event)
             return
 
@@ -128,7 +173,7 @@ class BoxItem(QGraphicsRectItem):
         event.accept()
 
     def mouseMoveEvent(self, event):
-        if not self._in_transform_mode() or self._handle is None:
+        if not self._in_interactive_mode() or self._handle is None:
             super().mouseMoveEvent(event)
             return
 
@@ -144,10 +189,10 @@ class BoxItem(QGraphicsRectItem):
             new_pos = self._pos_start + delta
             self.setPos(snap_to_5(new_pos.x()), snap_to_5(new_pos.y()))
         else:
-            ref_point = event.scenePos() 
+            ref_point = event.scenePos()
             v.alignment_manager.update_guides(ref_point, self.scene().items(), self, target_type=BoxItem)
             snapped_pos = v.alignment_manager.get_snapped_pos(ref_point)
-            
+
             sdx = snapped_pos.x() - self._drag_start.x()
             sdy = snapped_pos.y() - self._drag_start.y()
 
@@ -173,9 +218,9 @@ class BoxItem(QGraphicsRectItem):
         super().mouseReleaseEvent(event)
 
     def hoverMoveEvent(self, event):
-        if self._in_transform_mode():
+        if self._in_interactive_mode() and not self.text_item._editing:
             handle = _get_handle(event.pos(), self.rect())
-            self.setCursor(_cursor_for_handle(handle) if handle else Qt.CursorShape.ArrowCursor)
+            self.setCursor(_cursor_for_handle(handle) if handle else Qt.CursorShape.SizeAllCursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
         super().hoverMoveEvent(event)

@@ -25,6 +25,20 @@ class LabelItem(QGraphicsEllipseItem):
             QGraphicsItem.GraphicsItemFlag.ItemIsMovable |
             QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges
         )
+        self.setAcceptHoverEvents(True)
+
+    def mouseDoubleClickEvent(self, event):
+        """Doble clic activa la edición de texto del label."""
+        self.text_item.start_editing()
+        event.accept()
+
+    def hoverEnterEvent(self, event):
+        self.setCursor(Qt.CursorShape.SizeAllCursor)
+        super().hoverEnterEvent(event)
+
+    def hoverLeaveEvent(self, event):
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        super().hoverLeaveEvent(event)
 
     def itemChange(self, change, value):
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange:

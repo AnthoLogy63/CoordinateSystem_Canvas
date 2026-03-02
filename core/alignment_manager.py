@@ -5,7 +5,7 @@ from ui.items.label_item import LabelItem
 from ui.items.box_item import BoxItem
 
 class AlignmentManager:
-    def __init__(self, scene, threshold=4):
+    def __init__(self, scene, threshold=6):
         self.scene = scene
         self.threshold = threshold
         self.guide_items = []

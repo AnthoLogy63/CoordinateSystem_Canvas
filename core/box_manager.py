@@ -1,3 +1,5 @@
+from core.utils import snap_to_5
+
 class BoxManager:
     def __init__(self):
         self.boxes = {}
@@ -50,10 +52,12 @@ class BoxManager:
         for name, box in self.boxes.items():
             rect = box.sceneBoundingRect()
 
-            x1 = int(rect.left())
-            y1 = int(rect.top())
-            x2 = int(rect.right())
-            y2 = int(rect.bottom())
+            # snap_to_5 garantiza que siempre sean múltiplos de 5,
+            # sin importar deriva de flotantes o posición acumulada del item
+            x1 = snap_to_5(rect.left())
+            y1 = snap_to_5(rect.top())
+            x2 = snap_to_5(rect.right())
+            y2 = snap_to_5(rect.bottom())
 
             data[name] = {
                 "x1": x1,
@@ -64,6 +68,5 @@ class BoxManager:
                 "font_name": box.font_name,
                 "text": box.get_text()
             }
-
 
         return data

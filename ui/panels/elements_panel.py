@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, QListWidg
 from PyQt6.QtCore import Qt
 from ui.items.label_item import LabelItem
 from ui.items.box_item import BoxItem
+from core.utils import snap_to_5
 
 MAX_NAME_CHARS = 28 
 
@@ -143,14 +144,14 @@ class ElementsPanel(QFrame):
 
     def add_box(self, box):
         rect = box.sceneBoundingRect()
-        x1, y1 = round(rect.left()), round(rect.top())
-        x2, y2 = round(rect.right()), round(rect.bottom())
+        x1, y1 = snap_to_5(rect.left()), snap_to_5(rect.top())
+        x2, y2 = snap_to_5(rect.right()), snap_to_5(rect.bottom())
         item_text = f"Box: {box.name}\n({x1}, {y1}) -> ({x2}, {y2})"
         self._create_item_layout(box, item_text)
 
     def add_label(self, label: LabelItem):
         x, y = label.get_center()
-        item_text = f"Label: {label.name}\nPos: ({round(x)}, {round(y)})"
+        item_text = f"Label: {label.name}\nPos: ({snap_to_5(x)}, {snap_to_5(y)})"
         self._create_item_layout(label, item_text)
 
     def delete_element(self, element):
