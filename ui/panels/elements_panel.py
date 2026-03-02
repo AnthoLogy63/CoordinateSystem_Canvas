@@ -1,3 +1,10 @@
+"""
+ui/panels/elements_panel.py
+
+Panel lateral derecho que lista todos los elementos (Boxes y Labels) presentes en la escena.
+Permite renombrar, eliminar y ajustar el tamaño de fuente de los items.
+"""
+
 from PyQt6.QtWidgets import (QFrame, QVBoxLayout, QHBoxLayout, QLabel, QListWidget,
                              QListWidgetItem, QInputDialog, QFileDialog, QWidget,
                              QPushButton, QMessageBox)
@@ -9,7 +16,19 @@ from core.utils import snap_to_5
 MAX_NAME_CHARS = 28 
 
 class ElementsPanel(QFrame):
+    """
+    Componente visual que muestra una lista interactiva de los objetos creados.
+    """
+    
     def __init__(self, main_window, box_manager, label_manager):
+        """
+        Inicializa el panel de elementos.
+        
+        Args:
+            main_window (MainWindow): Referencia a la ventana principal.
+            box_manager (BoxManager): Referencia al gestor de cajas.
+            label_manager (LabelManager): Referencia al gestor de etiquetas.
+        """
         super().__init__()
         self.main_window = main_window
         self.box_manager = box_manager
@@ -59,9 +78,15 @@ class ElementsPanel(QFrame):
         self.list_widget.itemClicked.connect(self.on_item_clicked)
 
     def _truncate(self, text, max_chars=MAX_NAME_CHARS):
+        """Trunca el texto si excede el límite de caracteres."""
         return text if len(text) <= max_chars else text[:max_chars - 3] + "..."
 
     def _create_item_layout(self, element, text):
+        """
+        Crea un widget personalizado para una fila de la lista.
+        
+        Incluye el nombre del item, controles de tamaño de fuente y botón de borrado.
+        """
         item = QListWidgetItem(self.list_widget)
         item.setData(Qt.ItemDataRole.UserRole, element)
 
@@ -143,6 +168,7 @@ class ElementsPanel(QFrame):
         self.list_widget.setItemWidget(item, container)
 
     def add_box(self, box):
+        """Añade una representación de BoxItem a la lista."""
         rect = box.sceneBoundingRect()
         x1, y1 = snap_to_5(rect.left()), snap_to_5(rect.top())
         x2, y2 = snap_to_5(rect.right()), snap_to_5(rect.bottom())
@@ -150,11 +176,13 @@ class ElementsPanel(QFrame):
         self._create_item_layout(box, item_text)
 
     def add_label(self, label: LabelItem):
+        """Añade una representación de LabelItem a la lista."""
         x, y = label.get_center()
         item_text = f"Label: {label.name}\nPos: ({snap_to_5(x)}, {snap_to_5(y)})"
         self._create_item_layout(label, item_text)
 
     def delete_element(self, element):
+        """Elimina un elemento tanto de la escena como de los gestores y la lista."""
         confirm = QMessageBox.question(
             self, "Confirmar borrado", 
             f"¿Estás seguro de eliminar '{element.name}'?",
@@ -173,6 +201,7 @@ class ElementsPanel(QFrame):
             self.update_list()
 
     def update_list(self):
+        """Refresca completamente la lista basándose en los datos de los gestores."""
         self.list_widget.clear()
         for box in self.box_manager.boxes.values():
             self.add_box(box)
@@ -180,6 +209,7 @@ class ElementsPanel(QFrame):
             self.add_label(label)
 
     def rename_box_or_label(self, item: QListWidgetItem):
+        """Muestra un diálogo para cambiar el nombre al ítem seleccionado."""
         element = item.data(Qt.ItemDataRole.UserRole)
         old_name = element.name
         new_name, ok = QInputDialog.getText(
@@ -197,11 +227,18 @@ class ElementsPanel(QFrame):
             self.update_list()
 
     def on_item_clicked(self, item):
+        """Resalta en el canvas el item correspondiente al hacer clic en la lista."""
         element = item.data(Qt.ItemDataRole.UserRole)
         if element:
             self.main_window.view.highlight_item(element.name)
 
     def select_item_by_name(self, name):
+        """
+        Selecciona visualmente la fila correspondiente a un nombre en la lista.
+        
+        Args:
+            name (str): Nombre del item a seleccionar (None para deseleccionar).
+        """
         self.list_widget.blockSignals(True)
         self.list_widget.clearSelection()
         for i in range(self.list_widget.count()):

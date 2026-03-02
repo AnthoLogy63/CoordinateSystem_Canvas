@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QGraphicsRectItem, QGraphicsItem
 from PyQt6.QtGui import QPen, QColor
 from PyQt6.QtCore import Qt, QPointF, QRectF
 from core.modes import Mode
-from core.utils import snap_to_5
+from core.utils import snap_to_5, sync_text_layout
 from ui.items.text_item import TextItem
 
 HANDLE_MARGIN = 5
@@ -108,13 +108,7 @@ class BoxItem(QGraphicsRectItem):
         self._sync_layout()
 
     def _sync_layout(self):
-        r = self.rect()
-        width = r.width()
-        height = r.height()
-        self.text_item.set_justified(width, height)
-        doc_height = self.text_item.document().size().height()
-        y_offset = max(0, (height - doc_height) / 2)
-        self.text_item.setPos(r.left(), r.top() + y_offset)
+        sync_text_layout(self.rect(), self.text_item)
 
     # ── Helpers ───────────────────────────────────────────────────────────
     def _view(self):

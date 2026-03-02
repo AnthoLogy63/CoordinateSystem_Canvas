@@ -1,22 +1,38 @@
+"""
+main.py
+
+Punto de entrada principal del sistema.
+
+Este módulo se encarga de:
+- Inicializar la aplicación Qt.
+- Crear la ventana principal.
+- Ejecutar el ciclo de eventos de la interfaz gráfica.
+"""
+
 import sys
-import os
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QFont, QFontDatabase
 from ui.main_window import MainWindow
 
-def main():
-    app = QApplication(sys.argv)
-    
-    font_path = os.path.join(os.path.dirname(__file__), "fonts", "Tw-Cen-MT-Bold.ttf")
-    
-    font_id = QFontDatabase.addApplicationFont(font_path)
-    
-    if font_id == -1:
-        print("Aviso: No se encontró el archivo en fonts/Tw-Cen-MT-Bold.ttf")
 
+def main() -> None:
+    """
+    Ejecuta la aplicación.
+
+    Crea la instancia de QApplication, inicializa la ventana
+    principal del sistema y lanza el ciclo principal de ejecución.
+
+    Raises:
+        SystemExit: Se produce al cerrar la aplicación.
+    """
+    app = QApplication(sys.argv)
+
+    # Crear y mostrar la ventana principal
     window = MainWindow()
     window.showMaximized()
+
+    # Iniciar el ciclo de eventos
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()

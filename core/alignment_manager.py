@@ -1,3 +1,9 @@
+"""
+core/alignment_manager.py
+
+Gestiona las guías de alineación y el snapping (ajuste) magnético entre elementos.
+"""
+
 from PyQt6.QtWidgets import QGraphicsLineItem
 from PyQt6.QtGui import QPen, QColor
 from PyQt6.QtCore import Qt, QPointF
@@ -5,7 +11,21 @@ from ui.items.label_item import LabelItem
 from ui.items.box_item import BoxItem
 
 class AlignmentManager:
+    """
+    Controlador encargado de calcular y dibujar líneas de guía para alinear elementos.
+    
+    Permite que los objetos 'salten' a posiciones alineadas con otros objetos 
+    cuando están dentro de un umbral de proximidad.
+    """
+    
     def __init__(self, scene, threshold=6):
+        """
+        Inicializa el gestor de alineación.
+        
+        Args:
+            scene (QGraphicsScene): La escena donde se añadirán las guías.
+            threshold (int): Distancia en píxeles para activar el snapping.
+        """
         self.scene = scene
         self.threshold = threshold
         self.guide_items = []
@@ -13,7 +33,9 @@ class AlignmentManager:
         self._last_snapped_y = None
 
     def clear_guides(self):
-        """Removes all guide lines from the scene."""
+        """
+        Elimina todas las líneas de guía actuales de la escena.
+        """
         for item in self.guide_items:
             if item.scene():
                 self.scene.removeItem(item)
@@ -22,7 +44,17 @@ class AlignmentManager:
         self._last_snapped_y = None
 
     def get_alignment_points(self, items, active_item=None, target_type=None):
-        """Collects alignment points from ALL items (boxes and labels combined)."""
+        """
+        Recopila los puntos de alineación (bordes y centros) de todos los items visibles.
+        
+        Args:
+            items (list): Lista de items en la escena.
+            active_item (QGraphicsItem, optional): El item que se está moviendo (se ignora).
+            target_type (type, optional): Filtro por tipo de objeto.
+            
+        Returns:
+            tuple: (x_points, y_points) Listas ordenadas de coordenadas candidatas.
+        """
         x_points = set()
         y_points = set()
 
@@ -44,7 +76,18 @@ class AlignmentManager:
         return sorted(list(x_points)), sorted(list(y_points))
 
     def update_guides(self, pos, items, active_item=None, target_type=None):
-        """Updates guide lines based on proximity to alignment points of the same type."""
+        """
+        Calcula y dibuja las guías si la posición actual está cerca de un punto de alineación.
+        
+        Args:
+            pos (QPointF): Posición actual del ratón o del objeto.
+            items (list): Items candidatos para alinear.
+            active_item (QGraphicsItem, optional): Item en movimiento.
+            target_type (type, optional): Tipo de objeto con el que alinear.
+            
+        Returns:
+            tuple: (snapped_x, snapped_y) Coordenadas ajustadas o None si no hay ajuste.
+        """
         self.clear_guides()
         
         # Determine target_type for filtering
@@ -91,7 +134,15 @@ class AlignmentManager:
         return snapped_x, snapped_y
 
     def get_snapped_pos(self, pos):
-        """Returns a QPointF adjusted to the last snapped coordinates."""
+        """
+        Retorna una posición QPointF ajustada a las últimas coordenadas de ajuste detectadas.
+        
+        Args:
+            pos (QPointF): Posición original.
+            
+        Returns:
+            QPointF: Posición (pos.x o snapped_x, pos.y o snapped_y).
+        """
         new_x = self._last_snapped_x if self._last_snapped_x is not None else pos.x()
         new_y = self._last_snapped_y if self._last_snapped_y is not None else pos.y()
         return QPointF(new_x, new_y)

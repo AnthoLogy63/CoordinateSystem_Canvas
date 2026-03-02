@@ -1,3 +1,10 @@
+"""
+ui/panels/header_selector.py
+
+Widget de cabecera que permite seleccionar el nombre de la variable activa (desde un Excel)
+y el tipo de fuente global que se aplicará a los nuevos items o a los seleccionados.
+"""
+
 import os
 import pandas as pd
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QComboBox, QCompleter
@@ -5,7 +12,17 @@ from PyQt6.QtCore import Qt
 
 
 class HeaderSelector(QWidget):
+    """
+    Componente de la barra de estado para la configuración rápida de nombres y fuentes.
+    """
+    
     def __init__(self, parent=None):
+        """
+        Inicializa el selector y carga los datos iniciales (headers y fuentes).
+        
+        Args:
+            parent (QWidget, optional): Widget padre.
+        """
         super().__init__(parent)
 
         # Layout principal horizontal: [label+combo] | [variable activa]
@@ -160,6 +177,7 @@ class HeaderSelector(QWidget):
         self.load_fonts()
 
     def load_fonts(self):
+        """Busca archivos TTF/OTF en la carpeta /fonts y los lista en el combo."""
         self.combo_font.clear()
         fonts_dir = os.path.join(os.path.dirname(__file__), "..", "..", "fonts")
         font_files = []
@@ -174,12 +192,15 @@ class HeaderSelector(QWidget):
         self.combo_font.addItems(font_files)
 
     def get_current_font(self):
+        """Devuelve el nombre del archivo de fuente seleccionado actualmente."""
         return self.combo_font.currentText()
 
     def _update_variable_label(self, text):
+        """Actualiza el texto del indicador visual de variable activa."""
         self.lbl_variable.setText(text if text else "—")
 
     def load_excel_headers(self):
+        """Carga las cabeceras desde el archivo Excel de importación."""
         self.combo.clear()
         items = ["AUTO"]
 
@@ -200,4 +221,5 @@ class HeaderSelector(QWidget):
         self._update_variable_label(self.combo.currentText())
 
     def get_current_name(self):
+        """Devuelve el nombre seleccionado en el combo de headers."""
         return self.combo.currentText()

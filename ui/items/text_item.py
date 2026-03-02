@@ -1,12 +1,33 @@
+"""
+ui/items/text_item.py
+
+Componente de texto editable basado en QGraphicsTextItem.
+Gestiona la carga de fuentes personalizadas y la interacción con el usuario.
+"""
+
 import os
 from PyQt6.QtWidgets import QGraphicsTextItem
 from PyQt6.QtGui import QTextOption, QPen, QColor, QFont, QFontDatabase
 from PyQt6.QtCore import Qt, QRectF
 
 class TextItem(QGraphicsTextItem):
-    _loaded_fonts = {}  # Cache de {path: family_name}
+    """
+    Subclase de QGraphicsTextItem optimizada para el sistema.
+    
+    Permite el renderizado de texto multilinea, carga dinámica de fuentes
+    TTF/OTF y modo de edición activable por el padre.
+    """
+    
+    _loaded_fonts = {}  # Cache de {path: family_name} para evitar recargas constantes
 
     def __init__(self, text_mode="short", parent=None):
+        """
+        Inicializa el item de texto.
+        
+        Args:
+            text_mode (str): "short" para labels, "long" para bloques de texto.
+            parent (QGraphicsItem): Item contenedor (BoxItem o LabelItem).
+        """
         content = "Lorem" if text_mode == "short" else "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
         super().__init__(content, parent)
         
@@ -19,7 +40,7 @@ class TextItem(QGraphicsTextItem):
         # Conectar cambio de texto para notificar al padre si es necesario
         self.document().contentsChanged.connect(self._on_content_changed)
         
-        # Fuente por defecto suave, sin forzar negrita aquí
+        # Fuente por defecto suave
         font = QFont("Segoe UI", 10)
         self.setFont(font)
         
@@ -28,7 +49,9 @@ class TextItem(QGraphicsTextItem):
         self._editing = False
 
     def start_editing(self):
-        """Activa la edición de texto (llamado desde double-click del padre)."""
+        """
+        Activa el modo de edición de texto y otorga el foco al item.
+        """
         if self._editing:
             return
         self._editing = True
@@ -37,7 +60,9 @@ class TextItem(QGraphicsTextItem):
         self.setFocus(Qt.FocusReason.MouseFocusReason)
 
     def stop_editing(self):
-        """Desactiva la edición y vuelve al modo de solo lectura."""
+        """
+        Finaliza el modo de edición, limpia la selección y pierde el foco.
+        """
         if not self._editing:
             return
         self._editing = False
@@ -53,7 +78,15 @@ class TextItem(QGraphicsTextItem):
             parent.on_text_editing_stopped()
 
     def update_font_family(self, font_name):
-        """Carga y aplica una fuente desde la carpeta fonts/"""
+        """
+        Carga una fuente desde la carpeta /fonts y la aplica al item.
+        
+        Args:
+            font_name (str): Nombre del archivo de fuente (ej: 'Arial.ttf').
+            
+        Returns:
+            bool: True si la fuente se cargó o ya existía.
+        """
         if not font_name or font_name.lower() == "arial":
             font = self.font()
             font.setFamily("Arial")
@@ -80,14 +113,14 @@ class TextItem(QGraphicsTextItem):
             font = self.font()
             font.setFamily(family)
             
-            # Intentar detectar si es negrita por el nombre del archivo si la familia es la misma
+            # Intentar detectar si es negrita por el nombre del archivo
             is_bold = "bold" in font_name.lower()
             font.setBold(is_bold)
             
             self.setFont(font)
             return True
         
-        # Fallback
+        # Fallback a Arial
         font = self.font()
         font.setFamily("Arial")
         font.setBold(False)
@@ -95,10 +128,10 @@ class TextItem(QGraphicsTextItem):
         return False
 
     def boundingRect(self):
-        """Limita el bounding rect al alto máximo (_max_height = alto del box padre).
+        """
+        Define el área rectangular del item, limitando la altura al contenedor padre.
         
-        Sin esto, el TextItem se extiende visualmente fuera del box y roba
-        los eventos de hover en el borde inferior, impidiendo seleccionarlo.
+        Esto evita que el texto 'robe' eventos de mouse fuera de su contenedor.
         """
         br = super().boundingRect()
         w = br.width() if br.width() > 0 else (self.textWidth() if self.textWidth() > 0 else 200)
@@ -106,6 +139,11 @@ class TextItem(QGraphicsTextItem):
         return QRectF(br.x(), br.y(), w, constrained_h)
 
     def paint(self, painter, option, widget):
+        """
+        Dibuja el texto y opcionalmente un borde punteado de guía.
+        
+        Implementa recorte (clipping) para asegurar que el texto no se salga del box.
+        """
         clip_w = self.textWidth() if self.textWidth() > 0 else 2000
         clip_rect = QRectF(0, 0, clip_w, self._max_height)
 
@@ -126,12 +164,22 @@ class TextItem(QGraphicsTextItem):
         painter.restore()
 
     def set_simple(self):
+        """
+        Configura el item para texto simple (alineado a la izquierda, sin ancho fijo).
+        """
         self.setTextWidth(-1)
         option = QTextOption()
         option.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.document().setDefaultTextOption(option)
 
     def set_justified(self, width, height=None):
+        """
+        Configura el item para texto justificado con un ancho específico.
+        
+        Args:
+            width (float): Ancho del bloque de texto.
+            height (float, optional): Altura máxima para limitar el recorte visual.
+        """
         self.setTextWidth(width)
         if height:
             self._max_height = height
@@ -141,17 +189,30 @@ class TextItem(QGraphicsTextItem):
         self.document().setDefaultTextOption(option)
 
     def _on_content_changed(self):
-        """Notifica al padre que el contenido ha cambiado"""
+        """
+        Notifica al item padre cuando el texto interno ha sido modificado.
+        """
         parent = self.parentItem()
         if parent and hasattr(parent, "update_text_layout"):
             parent.update_text_layout()
 
     def focusOutEvent(self, event):
-        """Sale del modo edición al perder el foco"""
+        """
+        Finaliza automáticamente la edición cuando el item pierde el foco.
+        """
         super().focusOutEvent(event)
         self.stop_editing()
 
     def update_font_size(self, delta):
+        """
+        Aumenta o disminuye el tamaño de la fuente.
+        
+        Args:
+            delta (int): Cambio en el tamaño (ej: +1 o -1).
+            
+        Returns:
+            int: El nuevo tamaño de fuente resultante.
+        """
         self.prepareGeometryChange()
         font = self.font()
         new_size = max(4, font.pointSize() + delta)

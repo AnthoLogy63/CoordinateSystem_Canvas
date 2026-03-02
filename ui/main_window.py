@@ -1,3 +1,10 @@
+"""
+ui/main_window.py
+
+Ventana principal de la aplicación Layout Builder.
+Orquesta la comunicación entre los paneles, la vista (Canvas) y los gestores de datos.
+"""
+
 from PyQt6.QtWidgets import QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QGraphicsPixmapItem, QLabel, QGraphicsTextItem, QMessageBox
 from PyQt6.QtGui import QPixmap, QFont, QColor, QPen, QBrush
 from PyQt6.QtCore import QRectF, QPointF, Qt
@@ -12,7 +19,17 @@ from ui.panels.header_selector import HeaderSelector
 import os
 
 class MainWindow(QMainWindow):
+    """
+    Clase principal que define la interfaz de usuario y el flujo de trabajo.
+    
+    Contiene el Canvas (GraphicsView), el panel de herramientas (ToolsPanel),
+    el panel de elementos (ElementsPanel) y el selector de cabecera.
+    """
+    
     def __init__(self):
+        """
+        Configura la interfaz, inicializa los gestores y establece el diseño base.
+        """
         super().__init__()
 
         self.setWindowTitle("Layout Builder")
@@ -86,18 +103,22 @@ class MainWindow(QMainWindow):
         self._show_placeholder()
 
     def _on_font_changed(self, font_name):
-        """Actualiza la fuente de los elementos seleccionados en el canvas"""
+        """
+        Actualiza la fuente de los elementos seleccionados en el canvas.
+        
+        Args:
+            font_name (str): Nuevo nombre de fuente seleccionado.
+        """
         selected_items = self.view.scene().selectedItems()
         for item in selected_items:
             if hasattr(item, "text_item"):
                 item.font_name = font_name
                 item.text_item.update_font_family(font_name)
-        
-        # Opcional: actualizar la lista si los nombres cambian (no es el caso aquí)
-        # self.elements_panel.update_list()
 
     def _show_placeholder(self):
-        """Muestra un mensaje en el canvas cuando no hay plantilla cargada"""
+        """
+        Muestra un mensaje visual en el lienzo indicando que debe cargarse una plantilla.
+        """
         scene = self.view.scene()
         scene.setSceneRect(0, 0, 1200, 700)
 
@@ -135,7 +156,12 @@ class MainWindow(QMainWindow):
         self._placeholder_items.append(sub)
 
     def load_background(self, path):
-        """Carga la imagen de fondo y guarda su ruta para el exportador"""
+        """
+        Carga una imagen como fondo del lienzo.
+        
+        Args:
+            path (str): Ruta absoluta al archivo de imagen.
+        """
         # Quitar el placeholder si existe
         if hasattr(self, '_placeholder_items'):
             for item in self._placeholder_items:
@@ -149,6 +175,12 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"Layout Builder  |  {basename}")
 
     def load_image(self, path):
+        """
+        Muestra la imagen en el canvas y ajusta el área de la escena.
+        
+        Args:
+            path (str): Ruta de la imagen.
+        """
         pixmap = QPixmap(path)
         if hasattr(self, "background_item") and getattr(self, "background_item"):
             self.background_item.setPixmap(pixmap)
@@ -161,7 +193,9 @@ class MainWindow(QMainWindow):
         self.view.scene().setSceneRect(QRectF(rect))
 
     def keyPressEvent(self, event):
-        """Atajos de teclado globales para cambiar de modo."""
+        """
+        Captura atajos de teclado (1, 2, 3, Esc) para cambiar de modo rápidamente.
+        """
         # No capturar si hay un TextItem activo o cualquier widget con foco de texto
         from PyQt6.QtWidgets import QApplication
         focused = QApplication.focusWidget()
@@ -182,16 +216,34 @@ class MainWindow(QMainWindow):
             super().keyPressEvent(event)
 
     def change_mode(self, mode):
+        """
+        Cambia el modo global de la aplicación.
+        
+        Args:
+            mode (Mode): Modo objetivo.
+        """
         self.current_mode = mode
         self.view.set_mode(mode)
         self.tools_panel.change_mode(mode)
 
     def export_elements(self, export_dir=None):
+        """
+        Inicia el proceso de exportación de los elementos actuales.
+        
+        Args:
+            export_dir (str, optional): Carpeta destino personalizada.
+            
+        Returns:
+            tuple: (py_path, txt_path) con las rutas de los archivos generados.
+        """
         py_path, txt_path = export_layout(self.box_manager, self.label_manager, self.background_path, export_dir)
         print(f"Configuración exportada en: {py_path}")
         return py_path, txt_path
 
     def create_box(self, x, y, w, h, name=None, font_name="Arial"):
+        """
+        Crea programáticamente una caja y la añade a la escena.
+        """
         from ui.items.box_item import BoxItem
         rect = QRectF(x, y, w, h)
         box_item = BoxItem(rect, name, font_name=font_name)
@@ -199,18 +251,24 @@ class MainWindow(QMainWindow):
         return box_item
 
     def create_label(self, x, y, name=None, font_name="Arial"):
+        """
+        Crea programáticamente una etiqueta y la añade a la escena.
+        """
         from ui.items.label_item import LabelItem
         label_item = LabelItem(QPointF(x, y), name, font_name=font_name)
         self.view.scene().addItem(label_item)
         return label_item
 
     def add_box_to_list(self, box):
+        """Registra una caja en el panel lateral."""
         self.elements_panel.add_box(box)
 
     def add_label_to_list(self, label):
+        """Registra una etiqueta en el panel lateral."""
         self.elements_panel.add_label(label)
 
     def closeEvent(self, event):
+        """Muestra un diálogo de confirmación antes de cerrar."""
         reply = QMessageBox.question(
             self, "Confirmar Salida", "¿Seguro que deseas salir?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,

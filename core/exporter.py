@@ -1,7 +1,28 @@
+"""
+core/exporter.py
+
+Módulo encargado de generar archivos de salida (.py y .txt) basándose en el layout actual.
+"""
+
 import os
 from datetime import datetime
 
 def export_layout(box_manager, label_manager, template_path=None, export_dir=None):
+    """
+    Genera y guarda la configuración del layout en formatos Python (.py) y texto (.txt).
+    
+    Este proceso incluye la recopilación de todas las fuentes utilizadas y la creación
+    de un diccionario `LAYOUT_CONFIG` que puede ser utilizado por otros scripts.
+    
+    Args:
+        box_manager (BoxManager): Gestor de cajas de donde extraer datos.
+        label_manager (LabelManager): Gestor de etiquetas de donde extraer datos.
+        template_path (str, optional): Ruta al archivo original para generar el nombre de salida.
+        export_dir (str, optional): Directorio de destino. Si es None, usa la carpeta 'export/'.
+        
+    Returns:
+        tuple: (py_path, txt_path) Las rutas absolutas a los archivos generados.
+    """
     if export_dir:
         os.makedirs(export_dir, exist_ok=True)
     else:

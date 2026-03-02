@@ -1,3 +1,11 @@
+"""
+ui/graphics_view.py
+
+Vista principal del lienzo (Canvas) basada en QGraphicsView.
+Maneja la interacción del ratón para crear, seleccionar y transformar items,
+así como el scroll automático (auto-panning) y el zoom.
+"""
+
 from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsItem, QMessageBox
 from PyQt6.QtGui import QWheelEvent, QMouseEvent, QPen, QColor
 from PyQt6.QtCore import Qt, QRectF, QPointF, QTimer
@@ -8,7 +16,28 @@ from core.alignment_manager import AlignmentManager
 from core.utils import snap_to_5
 
 class GraphicsView(QGraphicsView):
+    """
+    Componente que visualiza y gestiona la interacción con la escena de dibujo.
+    
+    Proporciona herramientas para:
+    - Zoom con la rueda del ratón.
+    - Paneo manual (arrastrar con el mouse en modo SELECT).
+    - Creación de cajas y etiquetas.
+    - Alineación automática mediante AlignmentManager.
+    - Auto-panning cuando se arrastra cerca de los bordes.
+    """
+    
     def __init__(self, box_manager, label_manager, list_widget, main_window=None, parent=None):
+        """
+        Inicializa la vista y sus gestores.
+        
+        Args:
+            box_manager (BoxManager): Referencia al gestor de cajas.
+            label_manager (LabelManager): Referencia al gestor de etiquetas.
+            list_widget (QListWidget): Widget de la lista de elementos (histórico).
+            main_window (MainWindow, optional): Referencia a la ventana principal.
+            parent (QWidget, optional): Widget padre.
+        """
         super().__init__(parent)
         self.setScene(QGraphicsScene())
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
@@ -40,6 +69,12 @@ class GraphicsView(QGraphicsView):
         self._pan_start_pos = None
 
     def set_mode(self, mode):
+        """
+        Cambia el modo de operación actual y actualiza el cursor y estado de los items.
+        
+        Args:
+            mode (Mode): Nuevo modo (Select, Transform, Create, etc.).
+        """
         self.drawing = False
         self.temp_rect = None
         self.mode = mode
@@ -60,6 +95,9 @@ class GraphicsView(QGraphicsView):
             self.viewport().setCursor(Qt.CursorShape.CrossCursor)
 
     def wheelEvent(self, event: QWheelEvent):
+        """
+        Gestiona el zoom mediante la rueda del ratón, limitando el rango.
+        """
         delta = 1 if event.angleDelta().y() > 0 else -1
         new_zoom = self._zoom + delta
         if -8 <= new_zoom <= 20:
@@ -68,6 +106,12 @@ class GraphicsView(QGraphicsView):
             self.scale(factor, factor)
 
     def _item_at(self, viewport_pos):
+        """
+        Busca un item del sistema (Box o Label) en una posición del viewport.
+        
+        Args:
+            viewport_pos (QPoint): Posición del ratón en píxeles de pantalla.
+        """
         item = self.itemAt(viewport_pos)
         while item and not hasattr(item, 'name') and item.parentItem():
             item = item.parentItem()
@@ -76,6 +120,9 @@ class GraphicsView(QGraphicsView):
         return None
 
     def mousePressEvent(self, event: QMouseEvent):
+        """
+        Inicia acciones de creación o selección basándose en el modo actual.
+        """
         pos = self.mapToScene(event.position().toPoint())
         item = self._item_at(event.position().toPoint())
 
@@ -145,6 +192,9 @@ class GraphicsView(QGraphicsView):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent):
+        """
+        Gestiona el feedback visual durante el arrastre (guías, creación de rectángulos).
+        """
         pos = self.mapToScene(event.position().toPoint())
 
         if self.main_window and hasattr(self.main_window, "coord_label"):
@@ -167,6 +217,9 @@ class GraphicsView(QGraphicsView):
         self._handle_auto_pan(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
+        """
+        Finaliza la creación de items o el paneo de cámara.
+        """
         pos = self.mapToScene(event.position().toPoint())
 
         if self._panning:
@@ -210,6 +263,9 @@ class GraphicsView(QGraphicsView):
         self.last_mouse_pos = None
 
     def _handle_auto_pan(self, event):
+        """
+        Detecta si el mouse está en los márgenes para activar el auto-panning.
+        """
         if not self.drawing and self.mode not in [Mode.TRANSFORM, Mode.SELECT]:
             self.pan_timer.stop()
             return
@@ -237,6 +293,9 @@ class GraphicsView(QGraphicsView):
             self.pan_timer.stop()
 
     def _do_auto_pan(self):
+        """
+        Ejecuta el desplazamiento de la vista y actualiza guías si es necesario.
+        """
         h_bar = self.horizontalScrollBar()
         v_bar = self.verticalScrollBar()
         h_bar.setValue(int(h_bar.value() + self.pan_delta.x()))
@@ -246,6 +305,9 @@ class GraphicsView(QGraphicsView):
             self._update_during_movement(scene_pos)
 
     def _update_during_movement(self, pos):
+        """
+        Lógica interna para actualizar guías y rectángulos temporales según el movimiento.
+        """
         if self.mode == Mode.CREATE:
             self.alignment_manager.update_guides(pos, self.scene().items(), target_type=BoxItem)
             if self.drawing and self.temp_rect:
@@ -267,11 +329,10 @@ class GraphicsView(QGraphicsView):
 
     def highlight_item(self, name):
         """
-        Aplica colores de estado a todos los items:
-        - BoxItem seleccionado → estado 'selected' (naranja)
-        - BoxItem no seleccionado → estado 'default' (azul), salvo que esté editando
-        - LabelItem seleccionado → borde negro
-        - LabelItem no seleccionado → borde rojo
+        Aplica colores de estado a todos los items para resaltar la selección.
+        
+        Args:
+            name (str): Nombre del item a seleccionar (None para deseleccionar todo).
         """
         COLOR_BORDE_SEL_LABEL   = QColor(0, 0, 0)
         COLOR_BORDE_LABEL       = QColor(255, 0, 0)

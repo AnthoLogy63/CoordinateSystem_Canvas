@@ -1,3 +1,10 @@
+"""
+ui/panels/tools_panel.py
+
+Panel lateral izquierdo que contiene las herramientas principales.
+Permite cambiar de modo (Selección, Box, Label) y gestionar la importación/exportación.
+"""
+
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QLabel, QPushButton, QFileDialog, QMessageBox, QGraphicsPixmapItem
 from PyQt6.QtCore import Qt, QRectF
 from core.modes import Mode
@@ -62,7 +69,17 @@ ACTION_BTN_STYLE = """
 
 
 class ToolsPanel(QFrame):
+    """
+    Componente visual que agrupa los botones de acción y modos de la aplicación.
+    """
+    
     def __init__(self, main_window):
+        """
+        Inicializa el panel y construye su layout.
+        
+        Args:
+            main_window (MainWindow): Referencia a la ventana principal para coordinar acciones.
+        """
         super().__init__()
         self.main_window = main_window
         self.setFixedWidth(220)
@@ -204,9 +221,16 @@ class ToolsPanel(QFrame):
         self.set_default_mode()
 
     def set_default_mode(self):
+        """Establece el modo inicial por defecto (SELECT)."""
         self.change_mode(Mode.SELECT)
 
     def change_mode(self, mode):
+        """
+        Cambia el modo visual de los botones y actualiza el estado global.
+        
+        Args:
+            mode (Mode): Modo a activar.
+        """
         self.main_window.current_mode = mode
         if hasattr(self.main_window, "view"):
             self.main_window.view.set_mode(mode)
@@ -225,6 +249,9 @@ class ToolsPanel(QFrame):
             self.btn_moverse.setStyleSheet(ACTIVE_BTN_STYLE)
 
     def import_background_action(self):
+        """
+        Abre un diálogo para seleccionar una imagen de fondo.
+        """
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Seleccionar Plantilla de Fondo", "",
             "Imágenes (*.png *.jpg *.jpeg *.bmp *.tiff *.webp)"
@@ -238,6 +265,9 @@ class ToolsPanel(QFrame):
         )
 
     def export_action(self):
+        """
+        Inicia la exportación de coordenadas tras pedir carpeta de destino.
+        """
         export_dir = QFileDialog.getExistingDirectory(
             self, "Seleccionar carpeta para exportar", ""
         )
@@ -252,6 +282,9 @@ class ToolsPanel(QFrame):
         )
 
     def import_action(self):
+        """
+        Importa un layout previo desde un archivo generado (.py).
+        """
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Importar Layout (.py)", "", "Python Files (*.py)"
         )
