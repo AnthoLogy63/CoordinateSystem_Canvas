@@ -265,8 +265,12 @@ class GraphicsView(QGraphicsView):
     def _handle_auto_pan(self, event):
         """
         Detecta si el mouse está en los márgenes para activar el auto-panning.
+        Solo funciona si se está dibujando (creando item) o si se está arrastrando un elemento seleccionado.
         """
-        if not self.drawing and self.mode not in [Mode.TRANSFORM, Mode.SELECT]:
+        is_moving_item = (len(self.scene().selectedItems()) > 0 and 
+                          event.buttons() & Qt.MouseButton.LeftButton)
+        
+        if not self.drawing and not is_moving_item:
             self.pan_timer.stop()
             return
 

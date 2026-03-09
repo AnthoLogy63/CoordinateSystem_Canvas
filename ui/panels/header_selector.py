@@ -7,7 +7,7 @@ y el tipo de fuente global que se aplicará a los nuevos items o a los seleccion
 
 import os
 import pandas as pd
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QComboBox, QCompleter
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QComboBox, QCompleter, QPushButton, QFileDialog, QMessageBox
 from PyQt6.QtCore import Qt
 
 
@@ -39,7 +39,34 @@ class HeaderSelector(QWidget):
 
         self.label = QLabel("HEADER ACTIVO:")
         self.label.setStyleSheet("font-weight: bold; font-size: 11px; color: #9AC7C8;")
-        left_layout.addWidget(self.label)
+        
+        # Botón de Importación al lado del label
+        header_top_layout = QHBoxLayout()
+        header_top_layout.setContentsMargins(0, 0, 0, 0)
+        header_top_layout.addWidget(self.label)
+        
+        self.btn_import = QPushButton("Importar Excel")
+        self.btn_import.setFixedWidth(100)
+        self.btn_import.setStyleSheet("""
+            QPushButton {
+                background-color: #24445B;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                font-size: 10px;
+                font-weight: bold;
+                padding: 2px 5px;
+            }
+            QPushButton:hover {
+                background-color: #FD9E2E;
+                color: #1a2530;
+            }
+        """)
+        self.btn_import.clicked.connect(self._on_import_clicked)
+        header_top_layout.addWidget(self.btn_import)
+        header_top_layout.addStretch()
+        
+        left_layout.addLayout(header_top_layout)
 
         self.combo = QComboBox()
         self.combo.setMinimumHeight(36)
@@ -173,7 +200,9 @@ class HeaderSelector(QWidget):
         # Conectar cambio del combo para actualizar la etiqueta de variable
         self.combo.currentTextChanged.connect(self._update_variable_label)
 
-        self.load_excel_headers()
+        # Inicializar combo con solo AUTO
+        self.combo.clear()
+        self.combo.addItem("AUTO")
         self.load_fonts()
 
     def load_fonts(self):
@@ -199,24 +228,43 @@ class HeaderSelector(QWidget):
         """Actualiza el texto del indicador visual de variable activa."""
         self.lbl_variable.setText(text if text else "—")
 
-    def load_excel_headers(self):
-        """Carga las cabeceras desde el archivo Excel de importación."""
-        self.combo.clear()
-        items = ["AUTO"]
+    def _on_import_clicked(self):
+        """Abre un diálogo para seleccionar el archivo Excel."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar Excel de Datos", "", 
+            "Archivos Excel (*.xlsx *.xls)"
+        )
+        if file_path:
+            self.load_excel_headers(file_path)
 
+    def load_excel_headers(self, excel_path=None):
+        """Carga las cabeceras desde el archivo Excel de importación."""
+        if not excel_path:
+            return
+
+        items = ["AUTO"]
         try:
-            excel_path = os.path.join(os.path.dirname(__file__), "..", "..", "import", "plantilla.xlsx")
             if os.path.exists(excel_path):
+                # Usar pandas para leer solo las cabeceras
                 df = pd.read_excel(excel_path, nrows=0)
                 headers = [str(h).strip().lower().replace(" ", "_") for h in df.columns]
-                items.extend(headers)
+                
+                if not headers:
+                    QMessageBox.warning(self, "Excel Vacío", "El archivo seleccionado no tiene columnas.")
+                    return
 
+                items.extend(headers)
+                self.combo.clear()
                 self.combo.addItems(items)
                 self.combo.completer().setModel(self.combo.model())
+                
+                # Feedback visual de éxito
+                self.btn_import.setText("Excel Cargado ✔")
+                self.btn_import.setStyleSheet(self.btn_import.styleSheet().replace("#24445B", "#2e7d32"))
             else:
-                print(f"No se encontró el archivo: {excel_path}")
+                QMessageBox.critical(self, "Error", f"No se encontró el archivo:\n{excel_path}")
         except Exception as e:
-            print(f"Error cargando headers: {e}")
+            QMessageBox.critical(self, "Error de Carga", f"No se pudo leer el Excel:\n{str(e)}")
 
         self._update_variable_label(self.combo.currentText())
 
